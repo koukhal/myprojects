@@ -25,6 +25,7 @@ Created on 24 oct. 2016
                : 16/05/2018 : Modifier le nom du repertoire de sortie pour RODA (ajout du timestamp)
                               Generer NACK pour toutes les erreurs
                : 24/05/2018 : Change the processing for the expression/manifestation of which the linguistic version could not to be determined
+                              (distribution, procedure)
 '''
 
 import sys
@@ -1678,6 +1679,24 @@ def storeWorkPub(listWork):
             idyear = ""
             idnum = ""
             
+        elif 'dataset' in dicoWork:
+
+            cellarId = dicoWork.get('cellar')
+            collection = dicoWork.get('dataset')
+            typeOfcollection = "dataset"
+            serie = "dataset"
+            idyear = ""
+            idnum = ""
+            
+        elif 'procedure' in dicoWork:
+
+            cellarId = dicoWork.get('cellar')
+            collection = dicoWork.get('procedure')
+            typeOfcollection = "procedure"
+            serie = "procedure"
+            idyear = ""
+            idnum = ""
+            
         elif 'catl' in dicoWork:
 
             cellarId = dicoWork.get('cellar')
@@ -1696,9 +1715,7 @@ def storeWorkPub(listWork):
             collection = "not defined"
             typeOfcollection = "other"
             serie = "other"
-        
-        
-
+                
         dmdidWork = dicoWork.get('dmdid_work')
 
         global serieTodest
@@ -1925,6 +1942,26 @@ def storeExpression(listExpression):
 
                 #print "--------->>>>>>>>>>>>> %s" %publang
                 
+            elif 'dataset' in dicoExpression:
+                
+                cellartmp = dicoExpression.get('cellar')
+                splitcellar = cellartmp.split('.')
+                cellarId = splitcellar[0]
+                idext = splitcellar[1]
+
+                collection = dicoExpression.get('dataset')
+                
+                publang = collection.split('.')[1]
+                lglist = []
+                for line in collection.split('.'):
+                    lglist.append(line)
+                publang = lglist[-1]
+
+                if len(publang) > 3:
+                    publang ='MUL'
+                
+                print "--------->>>>>>>>>>>>> %s" %publang
+                
             elif 'procedure-event' in dicoExpression:
                 
                 cellartmp = dicoExpression.get('cellar')
@@ -1933,14 +1970,17 @@ def storeExpression(listExpression):
                 idext = splitcellar[1]
 
                 collection = dicoExpression.get('procedure-event')
-                publang = 'MUL'
-                # publang = collection.split('.')[1]
-                #lglist = []
-                #for line in collection.split('.'):
-                #    lglist.append(line)
-                #publang = lglist[-1]
+                
+                publang = collection.split('.')[1]
+                lglist = []
+                for line in collection.split('.'):
+                    lglist.append(line)
+                publang = lglist[-1]
 
-                #print "--------->>>>>>>>>>>>> %s" %publang
+                if len(publang) > 3:
+                    publang ='MUL'
+                
+                print "--------->>>>>>>>>>>>> %s" %publang
   
             else:
                 uriserv = dicoExpression.get('uriserv')
@@ -1989,7 +2029,8 @@ def storeExpression(listExpression):
             selectQuery = "SELECT count(contentids) from expression "
             # selectQuery += " where contentids like '%"+contentids+"%'"
             selectQuery += " where idcellar = '" + cellarId + "' "
-            selectQuery += " and lang = '" + publang + "' "
+            selectQuery += " and idext = '" + idext + "' "
+            #selectQuery += " and lang = '" + publang + "' "
             logger.info('Execute Query : %s' % selectQuery)
 
             result = cur.execute(selectQuery)
@@ -2270,7 +2311,35 @@ def storeManifestation(listManifestation):
                 filename = filetmp[1]
 
                 fileid = dicoManifestation.get('fileid') 
-                             
+            
+            elif 'distribution' in dicoManifestation:
+                if dicoManifestation.has_key('cellar') is True:
+                    cellartmp = dicoManifestation.get('cellar')
+                    splitcellar = cellartmp.split('.')
+                    cellarId = splitcellar[0]
+                    idext = splitcellar[1] + splitcellar[2]
+
+                collection = dicoManifestation.get('distribution')
+                 
+                checkpublang = collection.split('.')[1]
+                print 'checkpublang %s collection %s'%(checkpublang,collection)
+                
+                if ( len(checkpublang) == 3 and checkpublang != 'zip' ):
+                    publang = checkpublang
+                    doctype = collection.split('.')[2]
+                    seperator = ".%s." % doctype
+                    filetmp = collection.split(seperator)
+                    filename = filetmp[1]
+                elif len(checkpublang) > 3 or checkpublang == 'zip' :
+                    publang = 'MUL'
+                    filename=collection.split('.')[3]+'.'+collection.split('.')[4]
+                    doctype = collection.split('.')[4]
+      
+
+                fileid = dicoManifestation.get('fileid') 
+                
+                print "++++++ %s %s %s ++++++++"%(doctype,publang,filename)
+                                             
             else:
                 uriserv = dicoManifestation.get('uriserv')
                 cellartmp = dicoManifestation.get('cellar')
@@ -2333,6 +2402,8 @@ def storeManifestation(listManifestation):
                     elif len(checkpublang) > 3:
                         publang = collection.split('.')[2]
                         doctype = collection.split('.')[3]
+                        if len(publang) > 3:
+                            publang='MUL'
          
                     seperator = ".%s." % doctype
                     filetmp = collection.split(seperator)
