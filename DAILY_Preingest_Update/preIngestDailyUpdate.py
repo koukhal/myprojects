@@ -7,7 +7,7 @@ Created on 24 oct. 2016
  EUDOR V3 - preIngest (Daily)
  Control and Valid the SIP packages on the front-end from the Daily Service
  Name          : preIngestDaily.py
- Version       : 2.9
+ Version       : 3.0
  Modif date     : 03/11/2016 : Ajout d'un repertoire pour les paquets d'update
                 : 29/12/2016 : Modification du traitement pour la mise a jour du zip dans le cas des UPDATE
                 :              Correction du bug pour les fichiers plus de 2GB
@@ -17,6 +17,8 @@ Created on 24 oct. 2016
                 : 24/01/2018 : Processing the expressions for the keys not identified in contentids
                 : 16/05/2018 : Modifier le nom du repertoire de sortie pour RODA (ajout du timestamp)
                                Generer NACK pour toutes les erreurs
+                : 24/05/2018 : Change the processing for the expression/manifestation of which the linguistic version could not to be determined
+                              (distribution, procedure)
 '''
 
 import sys
@@ -1992,6 +1994,45 @@ def storeExpression(listExpression):
                 publang = lglist[-1]
 
                 #print "--------->>>>>>>>>>>>> %s" %publang
+            elif 'dataset' in dicoExpression:
+                
+                cellartmp = dicoExpression.get('cellar')
+                splitcellar = cellartmp.split('.')
+                cellarId = splitcellar[0]
+                idext = splitcellar[1]
+
+                collection = dicoExpression.get('dataset')
+                
+                publang = collection.split('.')[1]
+                lglist = []
+                for line in collection.split('.'):
+                    lglist.append(line)
+                publang = lglist[-1]
+
+                if len(publang) > 3:
+                    publang ='MUL'
+                
+                print "--------->>>>>>>>>>>>> %s" %publang
+                
+            elif 'procedure-event' in dicoExpression:
+                
+                cellartmp = dicoExpression.get('cellar')
+                splitcellar = cellartmp.split('.')
+                cellarId = splitcellar[0]
+                idext = splitcellar[1]
+
+                collection = dicoExpression.get('procedure-event')
+                
+                publang = collection.split('.')[1]
+                lglist = []
+                for line in collection.split('.'):
+                    lglist.append(line)
+                publang = lglist[-1]
+
+                if len(publang) > 3:
+                    publang ='MUL'
+                
+                print "--------->>>>>>>>>>>>> %s" %publang
   
             else:
                 uriserv = dicoExpression.get('uriserv')
@@ -2343,6 +2384,37 @@ def storeManifestation(listManifestation):
                     seperator = ".%s." % doctype
                     filetmp = comnat.split(seperator)
                     filename = filetmp[1]
+                    
+                elif 'distribution' in dicoManifestation:
+                    if dicoManifestation.has_key('cellar') is True:
+                        cellartmp = dicoManifestation.get('cellar')
+                        splitcellar = cellartmp.split('.')
+                        cellarId = splitcellar[0]
+                        idext = splitcellar[1] + splitcellar[2]
+    
+                    collection = dicoManifestation.get('distribution')
+                     
+                    checkpublang = collection.split('.')[1]
+                    print 'checkpublang %s collection %s'%(checkpublang,collection)
+                    
+                    if ( len(checkpublang) == 3 and checkpublang != 'zip' ):
+                        publang = checkpublang
+                        doctype = collection.split('.')[2]
+                        seperator = ".%s." % doctype
+                        filetmp = collection.split(seperator)
+                        filename = filetmp[1]
+                    elif len(checkpublang) > 3 or checkpublang == 'zip' :
+                        publang = 'MUL'
+                        filename=collection.split('.')[3]+'.'+collection.split('.')[4]
+                        doctype = collection.split('.')[4]
+          
+    
+                    fileid = dicoManifestation.get('fileid') 
+                    
+                    print "++++++ %s %s %s ++++++++"%(doctype,publang,filename)
+                                             
+                    
+
                     
                 else:
                     premval = list(dicoManifestation.values())[0]
